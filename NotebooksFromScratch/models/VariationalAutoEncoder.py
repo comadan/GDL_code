@@ -149,7 +149,7 @@ class VariationalAutoEncoder():
         self.learning_rate = learning_rate
         optimizer = Adam(lr=self.learning_rate)
         
-        self.autoencoder_model.compile(optimizer=optimizer, loss=self.vae_loss)
+        self.autoencoder_model.compile(optimizer=optimizer, loss=self.vae_loss, metrics=[self.reconstruction_loss, self.vae_loss])
     
     
     def save(self, folder):

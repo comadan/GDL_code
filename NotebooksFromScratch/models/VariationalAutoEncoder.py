@@ -134,13 +134,13 @@ class VariationalAutoEncoder():
         
         self.reconstruction_loss = reconstruction_loss
         
-        def kl_divergence_loss():
+        def kl_divergence_loss(y_pred, y_true):
             return -.5 * sum(1 + self.log_variance - square(self.mu) - exp(self.log_variance), axis=1)
         
         self.kl_divergence_loss = kl_divergence_loss
         
         def vae_loss(y_pred, y_true):
-            return self.reconstruction_loss(y_pred, y_true) + self.kl_divergence_loss()
+            return self.reconstruction_loss(y_pred, y_true) + self.kl_divergence_loss(y_pred, y_true)
         
         self.vae_loss = vae_loss
     
@@ -149,7 +149,7 @@ class VariationalAutoEncoder():
         self.learning_rate = learning_rate
         optimizer = Adam(lr=self.learning_rate)
         
-        self.autoencoder_model.compile(optimizer=optimizer, loss=self.vae_loss, metrics=[self.reconstruction_loss, self.vae_loss])
+        self.autoencoder_model.compile(optimizer=optimizer, loss=self.vae_loss, metrics=[self.reconstruction_loss, self.kl_divergence_loss])
     
     
     def save(self, folder):

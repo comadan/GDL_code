@@ -65,10 +65,11 @@ class VariationalAutoEncoder():
                 name=f'encoder_conv_{i}')
             
             layer = convolutional_layer(layer)
-            layer = LeakyReLU()(layer)
             
             if self.use_batch_norm:
                 layer = BatchNormalization()(layer)
+            
+            layer = LeakyReLU()(layer)
             
             if self.use_dropout:
                 layer = Dropout(rate=self.dropout_rate)(layer)
@@ -109,12 +110,12 @@ class VariationalAutoEncoder():
             
             layer = deconvolutional_layer(layer)
             
-            if i < len(self.decoder_params) - 1:
-                layer = LeakyReLU()(layer)
-                
+            if i < len(self.decoder_params) - 1:                
                 if self.use_batch_norm:
                     layer = BatchNormalization()(layer)
                 
+                layer = LeakyReLU()(layer)
+
                 if self.use_dropout:
                     layer = Dropout(rate=self.dropout_rate)(layer)
             else:

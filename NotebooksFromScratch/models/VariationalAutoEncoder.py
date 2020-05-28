@@ -71,7 +71,7 @@ class VariationalAutoEncoder():
                 layer = BatchNormalization()(layer)
             
             if self.use_dropout:
-                layer = Dropout(rate=dropout_rate)(layer)
+                layer = Dropout(rate=self.dropout_rate)(layer)
         
         final_convolutional_shape = int_shape(layer)[1:] # this is used to map to a 2D space from the intial dense vectors in the decoder
         

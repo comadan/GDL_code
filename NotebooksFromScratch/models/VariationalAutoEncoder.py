@@ -205,7 +205,30 @@ class VariationalAutoEncoder():
             shuffle=True,
             callbacks=callbacks,
             )
+    
+    def train_with_generator(self, data_flow, epochs, steps_per_epoch, run_folder, print_every_n_batches = 100, initial_epoch = 0, lr_decay = 1, ):
+        def learning_rate_schedule(epoch):
+            return self.learning_rate * (lr_decay ** epoch)
         
+        self.learning_rate_scheduler = LearningRateScheduler(learning_rate_schedule) # The callbacks adjust the learning rate used by the optimization algorithm
+        
+        custom_callback = CustomCallback(run_folder, print_every_n_batches, initial_epoch, self)
+        
+        checkpoint_filepath=os.path.join(run_folder, "weights/weights-{epoch:03d}-{loss:.2f}.h5")
+        checkpoint1 = ModelCheckpoint(checkpoint_filepath, save_weights_only = True, verbose=1)
+        checkpoint2 = ModelCheckpoint(os.path.join(run_folder, 'weights/weights.h5'), save_weights_only = True, verbose=1)
+        
+        callbacks = [custom_callback, checkpoint1, checkpoint2, self.learning_rate_scheduler]
+                        
+        self.autoencoder_model.fit_generator(
+            data_flow
+            , shuffle = True
+            , epochs = epochs
+            , initial_epoch = initial_epoch
+            , callbacks = callbacks
+            , steps_per_epoch=steps_per_epoch 
+            )
+
 
 def load_model(model_class, folder):
     

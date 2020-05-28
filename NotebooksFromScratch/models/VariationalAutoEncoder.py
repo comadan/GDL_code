@@ -116,7 +116,7 @@ class VariationalAutoEncoder():
                     layer = BatchNormalization()(layer)
                 
                 if self.use_dropout:
-                    layer = Dropout(rate=dropout_rate)(layer)
+                    layer = Dropout(rate=self.dropout_rate)(layer)
             else:
                 layer = Activation('sigmoid', name="decoder_output")(layer)
             

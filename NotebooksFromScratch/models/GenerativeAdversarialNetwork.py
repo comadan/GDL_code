@@ -6,7 +6,7 @@ from keras.initializers import RandomNormal
 
 import keras.backend as backend
 
-class ConvolutionalGenerativeAdversarialNetwork():
+class GenerativeAdversarialNetwork():
     def __init__(self,
                  image_dim,
                  latent_dim,

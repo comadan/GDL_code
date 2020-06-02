@@ -11,31 +11,35 @@ class GenerativeAdversarialNetwork():
                  image_dim,
                  latent_dim,
                  generator_initial_dim,
+                 discriminator_dense_dim, 
                  generator_activation,
                  discriminator_activation,
                  generator_convolutional_params,
                  discriminator_convolutional_params,
                  use_batch_norm=False,
-                 use_dropout=False,
-                 dropout_rate=.1,
+                 generator_dropout_rate=None,
+                 discriminator_dropout_rate=None
                  ):
         """
         args:
             generator_convolutional_params: [{'strides': {Int}, 'upsample': {int}, 'filter_size': {int}, 'kernel_size': (int, int)}, 
                                             ...]
         """
-        self.generator_initial_dim = generator_initial_dim
         self.image_dim = image_dim
         self.latent_dim = latent_dim
+        
+        self.generator_initial_dim = generator_initial_dim
+        self.discriminator_dense_dim = discriminator_dense_dim
 
         self.generator_activation = generator_activation
+        self.discriminator_activation = discriminator_activation
 
         self.generator_convolutional_params = generator_convolutional_params
         self.discriminator_convolutional_params = discriminator_convolutional_params
 
         self.use_batch_norm = use_batch_norm
-        self.use_dropout = use_dropout
-        self.dropout_rate = dropout_rate
+        self.generator_dropout_rate = generator_dropout_rate
+        self.discriminator_dropout_rate = discriminator_dropout_rate
 
         self.weight_initializer = RandomNormal(mean=0., stddev=.02)
 
@@ -47,23 +51,29 @@ class GenerativeAdversarialNetwork():
     def _build_generator(self):
         generator_input = Input(shape=self.latent_dim, name="generator_input")
 
-        layer = Dense(units=np.prod(self.generator_initial_dim))(generator_input)
+        layer = Dense(units=np.prod(self.generator_initial_dim), kernel_initializer=self.weight_initializer)(generator_input)
         layer = Reshape(target_shape=self.generator_initial_dim)(layer)
+        # note that I moved the batch normalization here after the reshape rather than before the reshape (as in the master branch)
+        # by keras default the mean is taken for axis=-1, collapsing the mean across all other axis.
         if self.use_batch_norm:
             layer = BatchNormalization()(layer)
         layer = Activation(self.generator_activation)(layer)
+        if (self.generator_dropout_rate is not None) and (self.generator_dropout_rate > 0.):
+            layer = Dropout(rate=self.generator_dropout_rate)(layer)
 
         # convolutional layers
         for i, param in enumerate(self.generator_convolutional_params):
             if ('upsample' in param) and (param['upsample'] is not None) and param['upsample'] > 1:
                 layer = UpSampling2D(size=(param['upsample'], param['upsample']))(layer)
 
-            layer = Conv2D(filters=param['filters'], kernel_size=param['kernel_size'], strides=param['strides'], padding='same', name=f'generator_conv2d_{i}')(layer)
+            layer = Conv2D(filters=param['filters'], kernel_size=param['kernel_size'], strides=param['strides'], padding='same', kernel_initializer=self.weight_initializer, name=f'generator_conv2d_{i}')(layer)
 
             if i < len(self.generator_convolutional_params) - 1:
-                layer = Activation(self.generator_activation)(layer)
                 if self.use_batch_norm:
                     layer = BatchNormalization()(layer)
+                layer = Activation(self.generator_activation)(layer)
+                if (self.generator_dropout_rate is not None) and (self.generator_dropout_rate > 0.):
+                    layer = Dropout(rate=self.generator_dropout_rate)(layer)
             else:
                 layer = Activation('tanh', name='generator_final_activation')(layer)
 
@@ -71,7 +81,25 @@ class GenerativeAdversarialNetwork():
 
 
     def _build_discriminator(self):
-        return
+        discriminator_input = Input(shape=self.image_dim, name="discriminator_input")
+        layer = discriminator_input
+        for i, param in enumerate(self.discriminator_convolutional_params):
+            layer = Conv2D(filters=param['filters'], kernel_size=param['kernel_size'], strides=param['strides'], padding='same', kernel_initializer=self.weight_initializer, name=f'discriminator_conv2d_{i}')(layer)
+            
+            if (self.use_batch_norm) and (i < len(self.discriminator_convolutional_params) - 1) and (self.discriminator_dense_dim is not None) and (self.discriminator_dense_dim > 0):
+                layer = BatchNormalization()(layer)
+            layer = Activation(self.discriminator_activation)(layer)
+            if (self.discriminator_dropout_rate is not None) and (self.discriminator_dropout_rate > 0.):
+                layer = Dropout(rate=self.discriminator_dropout_rate)(layer)
+        
+        layer = Flatten()(layer)
+        if (self.discriminator_dense_dim is not None) and (self.discriminator_dense_dim > 0):
+            layer = Dense(units=self.discriminator_dense_dim, kernel_initializer=self.weight_initializer)(layer)
+            layer = Activation(self.discriminator_activation)(layer)
+        
+        layer = Dense(units=1, activation='sigmoid', kernel_initializer=self.weight_initializer)(layer)
+        
+        self.discriminator_model = Model(discriminator_input, layer)
 
     def _compile_models(self):
         return

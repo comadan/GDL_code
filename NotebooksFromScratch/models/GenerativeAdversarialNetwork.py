@@ -2,6 +2,8 @@ import numpy as np
 
 from keras.models import Model
 from keras.layers import Input, Conv2D, Conv2DTranspose, UpSampling2D, BatchNormalization, Dropout, Dense, Flatten, Reshape, Lambda, Activation
+from keras.losses import BinaryCrossentropy
+from keras.optimizers import Adam
 from keras.initializers import RandomNormal
 
 import keras.backend as backend
@@ -16,6 +18,8 @@ class GenerativeAdversarialNetwork():
                  discriminator_activation,
                  generator_convolutional_params,
                  discriminator_convolutional_params,
+                 generator_learning_rate=.01,
+                 discriminator_learning_rate=.01,
                  use_batch_norm=False,
                  generator_dropout_rate=None,
                  discriminator_dropout_rate=None
@@ -36,7 +40,10 @@ class GenerativeAdversarialNetwork():
 
         self.generator_convolutional_params = generator_convolutional_params
         self.discriminator_convolutional_params = discriminator_convolutional_params
-
+        
+        self.generator_learning_rate = generator_learning_rate
+        self.discriminator_learning_rate = discriminator_learning_rate
+        
         self.use_batch_norm = use_batch_norm
         self.generator_dropout_rate = generator_dropout_rate
         self.discriminator_dropout_rate = discriminator_dropout_rate
@@ -45,6 +52,7 @@ class GenerativeAdversarialNetwork():
 
         self._build_generator()
         self._build_discriminator()
+        self._build_adversarial()
         self._compile_models()
 
 
@@ -77,7 +85,7 @@ class GenerativeAdversarialNetwork():
             else:
                 layer = Activation('tanh', name='generator_final_activation')(layer)
 
-        self.generator_model = Model(generator_input, layer)
+        self.generator_model = Model(generator_input, layer, name="generator_model")
 
 
     def _build_discriminator(self):
@@ -99,11 +107,31 @@ class GenerativeAdversarialNetwork():
         
         layer = Dense(units=1, activation='sigmoid', kernel_initializer=self.weight_initializer)(layer)
         
-        self.discriminator_model = Model(discriminator_input, layer)
-
+        self.discriminator_model = Model(discriminator_input, layer, name="discriminator_model")
+        
+        BinaryCrossentropy()
+    
+    def _build_adversarial(self):
+        adversarial_input = Input(shape=self.latent_dim, name="adversarial_input")
+        adversarial_output = self.discriminator_model(self.generator_model(adversarial_input))
+        self.adversarial_model = Model(adversarial_input, adversarial_output, name="adversarial_model")
+    
     def _compile_models(self):
+        # compile the discriminator first
+        discriminator_optimizer = Adam(lr=self.discriminator_learning_rate)
+        self.discriminator_model.compile(loss=BinaryCrossentropy(), optimizer=discriminator_optimizer, metrics=['accuracy'])
+        
+        self.set_model_trainable(self.discriminator_model, is_trainable=False)
+        generator_optimizer = Adam(lr=self.generator_learning_rate)
+        self.adversarial_model.compile(loss=BinaryCrossentropy(), optimizer=generator_optimizer, metrics=['accuracy'])
         return
-
+    
+    
+    def set_model_trainable(self, model, is_trainable=True):
+        model.trainable = is_trainable
+        for layer in model.layers:
+            layer.trainable = False
+    
     def train_discriminator(self):
         return
 

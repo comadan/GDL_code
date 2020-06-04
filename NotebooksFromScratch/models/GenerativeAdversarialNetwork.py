@@ -98,8 +98,8 @@ class GenerativeAdversarialNetwork():
         for i, param in enumerate(self.discriminator_convolutional_params):
             layer = Conv2D(filters=param['filters'], kernel_size=param['kernel_size'], strides=param['strides'], padding='same', kernel_initializer=self.weight_initializer, name=f'discriminator_conv2d_{i}')(layer)
             
-            if (self.discriminator_batch_norm_momentum is not None) and (i < len(self.discriminator_convolutional_params) - 1) and (self.discriminator_dense_dim is not None) and (self.discriminator_dense_dim > 0):
-                layer = BatchNormalization(self.discriminator_batch_norm_momentum)(layer)
+            if (self.discriminator_batch_norm_momentum is not None) and ((i < len(self.discriminator_convolutional_params) - 1) or ((self.discriminator_dense_dim is not None) and (self.discriminator_dense_dim > 0))):
+                layer = BatchNormalization(momentum=self.discriminator_batch_norm_momentum)(layer)
             layer = Activation(self.discriminator_activation)(layer)
             if (self.discriminator_dropout_rate is not None) and (self.discriminator_dropout_rate > 0.):
                 layer = Dropout(rate=self.discriminator_dropout_rate)(layer)

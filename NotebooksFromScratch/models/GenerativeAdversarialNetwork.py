@@ -139,12 +139,7 @@ class GenerativeAdversarialNetwork():
         valid = np.ones((batch_size, 1))
         generated = np.zeros((batch_size, 1))
         latent_noise = np.random.normal(0., 1., (batch_size, self.latent_dim))
-        # generated_images = self.generator_model.predict(latent_noise)
-        # print("pre generator training", self.discriminator_model.test_on_batch(generated_images, valid), self.discriminator_model.test_on_batch(generated_images, generated))
         stats = self.adversarial_model.train_on_batch(latent_noise, valid)
-        # generated_images = self.generator_model.predict(latent_noise)
-        # print("post generator training", self.discriminator_model.test_on_batch(generated_images, valid), self.discriminator_model.test_on_batch(generated_images, generated))
-        # print("post training", self.discriminator_model.test_on_batch(generated_images, valid), self.discriminator_model.test_on_batch(generated_images, generated))
         return stats
     
     
@@ -161,28 +156,25 @@ class GenerativeAdversarialNetwork():
         
         x = np.concatenate((valid_images, generated_images), axis=0)
         valid_stats, generated_stats = self.discriminator_model.test_on_batch(valid_images, valid), self.discriminator_model.test_on_batch(generated_images, generated)
-        # print("pre discriminator training", valid_stats, generated_stats)
         self.discriminator_model.train_on_batch(x, y)
-        # valid_stats, generated_stats = self.discriminator_model.test_on_batch(valid_images, valid), self.discriminator_model.test_on_batch(generated_images, generated)
-        # print("post discriminator training", valid_stats, generated_stats)
         
         return valid_stats, generated_stats
         
     
-    # def train_discriminator(self, x_train, batch_size):
-    #     valid = np.ones((batch_size, 1))
-    #     generated = np.zeros((batch_size, 1))
+    def train_discriminator_alternating(self, x_train, batch_size):
+        valid = np.ones((batch_size, 1))
+        generated = np.zeros((batch_size, 1))
         
-    #     idx = np.random.randint(0, x_train.shape[0], batch_size)
-    #     valid_images = x_train[idx]
+        idx = np.random.randint(0, x_train.shape[0], batch_size)
+        valid_images = x_train[idx]
         
-    #     latent_noise = np.random.normal(0., 1., (batch_size, self.latent_dim))
-    #     generated_images = self.generator_model.predict(latent_noise)
-    #     # print(self.discriminator_model.test_on_batch(generated_images, generated))
+        latent_noise = np.random.normal(0., 1., (batch_size, self.latent_dim))
+        generated_images = self.generator_model.predict(latent_noise)
+        # print(self.discriminator_model.test_on_batch(generated_images, generated))
         
-    #     v = self.discriminator_model.train_on_batch(valid_images, valid)
-    #     g = self.discriminator_model.train_on_batch(generated_images, generated)
-    #     return v, g
+        v = self.discriminator_model.train_on_batch(valid_images, valid)
+        g = self.discriminator_model.train_on_batch(generated_images, generated)
+        return v, g
     
     
     def train(self, x_train, batch_size, epochs, run_folder, print_every_n_batches = 50):

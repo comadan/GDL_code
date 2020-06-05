@@ -1,5 +1,7 @@
-
+import os
+import pickle
 import numpy as np
+import matplotlib.pyplot as plt
 
 from keras.models import Model
 from keras.layers import Input, Conv2D, Conv2DTranspose, UpSampling2D, BatchNormalization, Dropout, Dense, Flatten, Reshape, Lambda, Activation
@@ -55,6 +57,9 @@ class GenerativeAdversarialNetwork():
         self.weight_initializer = RandomNormal(mean=0., stddev=.02)
         
         self.current_epoch = 0
+        self.discriminator_valid_losses = []
+        self.discriminator_generated_losses = []
+        self.generator_losses = []
 
         self._build_generator()
         self._build_discriminator()
@@ -178,10 +183,60 @@ class GenerativeAdversarialNetwork():
     
     
     def train(self, x_train, batch_size, epochs, run_folder, print_every_n_batches = 50):
+        paths = [os.path.join(run_folder, subdir) for subdir in ["weights", "model", "sampled_images"]]
+        for p in paths:
+            if not os.path.exists(p):
+                os.makedirs(p)
+        
         for epoch in range(self.current_epoch, self.current_epoch + epochs):
             valid_stats, generated_stats = self.train_discriminator(x_train, batch_size)
             generator_stats = self.train_generator(batch_size)
             print(f"epoch: {epoch}  disc. loss: (v: {valid_stats[0]:.3f} g: {generated_stats[0]:.3f}) acc.: (v: {valid_stats[1]:.3f} g: {generated_stats[1]:.3f})  gen. loss:{generator_stats[0]:.3f} acc.: {generator_stats[1]:.3f}")
-            # if epoch % print_every_n_batches == 0:
+            
+            self.generator_losses.append(generator_stats)
+            self.discriminator_valid_losses.append(valid_stats)
+            self.discriminator_generated_losses.append(generator_stats)
+
+            if epoch % print_every_n_batches == 0:
+                self.sample_images(run_folder)
+                self.adversarial_model.save_weights(os.path.join(run_folder, f"weights/weights-{self.current_epoch}.h5"))
             self.current_epoch += 1
+        
+        self.adversarial_model.save_weights(os.path.join(run_folder, f"weights/weights.h5"))
+        self.save_model(run_folder)
+    
+    
+    def sample_images(self, run_folder):
+        r, c = 5, 5
+        noise = np.random.normal(0, 1, (r * c, self.latent_dim))
+        gen_imgs = self.generator_model.predict(noise)
+
+        gen_imgs = 0.5 * (gen_imgs + 1)
+        gen_imgs = np.clip(gen_imgs, 0, 1)
+
+        fig, axs = plt.subplots(r, c, figsize=(15,15))
+        cnt = 0
+
+        for i in range(r):
+            for j in range(c):
+                axs[i,j].imshow(np.squeeze(gen_imgs[cnt, :,:,:]), cmap = 'gray')
+                axs[i,j].axis('off')
+                cnt += 1
+        fig.savefig(os.path.join(run_folder, "sampled_images/sample_%d.png" % self.current_epoch))
+        plt.close()
+    
+    
+    def save_model(self, run_folder):
+        self.adversarial_model.save(os.path.join(run_folder, "model/adversarial_model.h5"))
+        self.generator_model.save(os.path.join(run_folder, "model/generator_model.h5"))
+        self.discriminator_model.save(os.path.join(run_folder, "model/discriminator_model.h5"))
+        pickle.dump(self, open(os.path.join(run_folder, "model/gan_object.pkl"), "wb"))
+    
+    
+    def load_model(self, filepath):
+        self.adversarial_model.load_weights(filepath)
+    
+    
+        
+
 

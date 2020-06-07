@@ -161,7 +161,7 @@ class WassersteinGenerativeAdversarialNetwork():
         return stats
     
     
-    def train_critic(self, x_train, batch_size):
+    def train_critic(self, x_train, batch_size, clip_threshold):
         valid = np.ones((batch_size, 1))
         generated = np.zeros((batch_size, 1))
         y = np.concatenate((valid, generated), axis=0)
@@ -175,6 +175,10 @@ class WassersteinGenerativeAdversarialNetwork():
         x = np.concatenate((valid_images, generated_images), axis=0)
         valid_stats, generated_stats = self.critic_model.test_on_batch(valid_images, valid), self.critic_model.test_on_batch(generated_images, generated)
         self.critic_model.train_on_batch(x, y)
+        
+        for layer in self.critic_model.layers:
+            weights = [np.clip(w, -clip_threshold, clip_threshold) for w in layer.get_weights()]
+            layer.set_weights(weights)
         
         return valid_stats, generated_stats
         
@@ -195,7 +199,7 @@ class WassersteinGenerativeAdversarialNetwork():
         return v, g
     
     
-    def train(self, x_train, batch_size, epochs, run_folder, print_every_n_batches=50, critic_training_steps=5):
+    def train(self, x_train, batch_size, epochs, run_folder, print_every_n_batches=50, critic_training_steps=5, clip_threshold = 0.01):
         paths = [os.path.join(run_folder, subdir) for subdir in ["weights", "model", "sampled_images"]]
         for p in paths:
             if not os.path.exists(p):
@@ -203,7 +207,7 @@ class WassersteinGenerativeAdversarialNetwork():
         
         for epoch in range(self.current_epoch, self.current_epoch + epochs):
             for _ in range(critic_training_steps):
-                valid_stats, generated_stats = self.train_critic(x_train, batch_size)
+                valid_stats, generated_stats = self.train_critic(x_train, batch_size, clip_threshold)
             
             generator_stats = self.train_generator(batch_size)
             print(f"epoch: {epoch}  disc. loss: (v: {valid_stats[0]:.3f} g: {generated_stats[0]:.3f}) acc.: (v: {valid_stats[1]:.3f} g: {generated_stats[1]:.3f})  gen. loss:{generator_stats[0]:.3f} acc.: {generator_stats[1]:.3f}")

@@ -163,7 +163,7 @@ class WassersteinGenerativeAdversarialNetwork():
     
     def train_critic(self, x_train, batch_size, clip_threshold):
         valid = np.ones((batch_size, 1))
-        generated = np.zeros((batch_size, 1))
+        generated = - np.ones((batch_size, 1))
         y = np.concatenate((valid, generated), axis=0)
         
         idx = np.random.randint(0, x_train.shape[0], batch_size)

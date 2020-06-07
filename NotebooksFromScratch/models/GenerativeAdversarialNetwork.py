@@ -4,10 +4,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from keras.models import Model
-from keras.layers import Input, Conv2D, Conv2DTranspose, UpSampling2D, BatchNormalization, Dropout, Dense, Flatten, Reshape, Lambda, Activation
+from keras.layers import Input, Conv2D, Conv2DTranspose, UpSampling2D, BatchNormalization, Dropout, Dense, Flatten, Reshape, Lambda, Activation, LeakyReLU
 from keras.losses import BinaryCrossentropy
 from keras.optimizers import Adam, RMSprop
 from keras.initializers import RandomNormal
+from keras.utils import plot_model
 
 import keras.backend as backend
 
@@ -65,6 +66,12 @@ class GenerativeAdversarialNetwork():
         self._build_discriminator()
         self._build_adversarial()
 
+    def get_activation(self, activation):
+        if activation == 'leaky_relu':
+            layer = LeakyReLU(alpha = 0.2)
+        else:
+            layer = Activation(activation)
+        return layer
 
     def _build_generator(self):
         generator_input = Input(shape=(self.latent_dim, ), name="generator_input")
@@ -73,7 +80,7 @@ class GenerativeAdversarialNetwork():
         if self.generator_batch_norm_momentum is not None:
             layer = BatchNormalization(momentum=self.generator_batch_norm_momentum)(layer)
         
-        layer = Activation(self.generator_activation)(layer)
+        layer = Activation(self.get_activation(self.generator_activation))(layer)
         layer = Reshape(target_shape=self.generator_initial_dim)(layer)
         if (self.generator_dropout_rate is not None) and (self.generator_dropout_rate > 0.):
             layer = Dropout(rate=self.generator_dropout_rate)(layer)
@@ -88,7 +95,7 @@ class GenerativeAdversarialNetwork():
             if i < len(self.generator_convolutional_params) - 1:
                 if self.generator_batch_norm_momentum is not None:
                     layer = BatchNormalization(momentum=self.generator_batch_norm_momentum)(layer)
-                layer = Activation(self.generator_activation)(layer)
+                layer = Activation(self.get_activation(self.generator_activation))(layer)
                 if (self.generator_dropout_rate is not None) and (self.generator_dropout_rate > 0.):
                     layer = Dropout(rate=self.generator_dropout_rate)(layer)
             else:
@@ -105,14 +112,14 @@ class GenerativeAdversarialNetwork():
             
             if (self.discriminator_batch_norm_momentum is not None) and ((i < len(self.discriminator_convolutional_params) - 1) or ((self.discriminator_dense_dim is not None) and (self.discriminator_dense_dim > 0))):
                 layer = BatchNormalization(momentum=self.discriminator_batch_norm_momentum)(layer)
-            layer = Activation(self.discriminator_activation)(layer)
+            layer = Activation(self.get_activation(self.discriminator_activation))(layer)
             if (self.discriminator_dropout_rate is not None) and (self.discriminator_dropout_rate > 0.):
                 layer = Dropout(rate=self.discriminator_dropout_rate)(layer)
         
         layer = Flatten()(layer)
         if (self.discriminator_dense_dim is not None) and (self.discriminator_dense_dim > 0):
             layer = Dense(units=self.discriminator_dense_dim, kernel_initializer=self.weight_initializer)(layer)
-            layer = Activation(self.discriminator_activation)(layer)
+            layer = Activation(self.get_activation(self.discriminator_activation))(layer)
         
         layer = Dense(units=1, activation='sigmoid', kernel_initializer=self.weight_initializer)(layer)
         
@@ -236,7 +243,35 @@ class GenerativeAdversarialNetwork():
     def load_model(self, filepath):
         self.adversarial_model.load_weights(filepath)
     
+    def plot_model(self, run_folder):
+        plot_model(self.adversarial_model, to_file=os.path.join(run_folder ,'viz/model.png'), show_shapes = True, show_layer_names = True)
+        plot_model(self.discriminator_model, to_file=os.path.join(run_folder ,'viz/critic.png'), show_shapes = True, show_layer_names = True)
+        plot_model(self.generator_model, to_file=os.path.join(run_folder ,'viz/generator.png'), show_shapes = True, show_layer_names = True)
     
+    def save(self, f)
+    
+        with open(os.path.join(folder, 'params.pkl'), 'wb') as f:
+            pickle.dump([
+                self.image_dim,
+                self.latent_dim,
+                self.generator_initial_dim,
+                self.discriminator_dense_dim,
+                self.generator_activation,
+                self.discriminator_activation,
+                self.generator_convolutional_params,
+                self.discriminator_convolutional_params,
+                self.generator_learning_rate,
+                self.discriminator_learning_rate,
+                self.generator_batch_norm_momentum,
+                self.discriminator_batch_norm_momentum,
+                self.generator_dropout_rate,
+                self.discriminator_dropout_rate,
+                ], f)
+
+        self.plot_model(folder)
+
         
+
+
 
 

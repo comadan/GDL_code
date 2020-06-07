@@ -140,10 +140,7 @@ class WGAN():
 
         x = generator_input
 
-        x = Dense(np.prod(self.generator_initial_dense_layer_size)
-        ,kernel_initializer = self.weight_init
-        )(x)
-
+        x = Dense(np.prod(self.generator_initial_dense_layer_size), kernel_initializer = self.weight_init)(x)
         
         if self.generator_batch_norm_momentum:
             x = BatchNormalization(momentum = self.generator_batch_norm_momentum)(x)
@@ -160,11 +157,11 @@ class WGAN():
             if self.generator_upsample[i] == 2:
                 x = UpSampling2D()(x)
                 x = Conv2D(
-                filters = self.generator_conv_filters[i]
-                , kernel_size = self.generator_conv_kernel_size[i]
-                , padding = 'same'
-                , name = 'generator_conv_' + str(i)
-                , kernel_initializer = self.weight_init
+                    filters = self.generator_conv_filters[i]
+                    , kernel_size = self.generator_conv_kernel_size[i]
+                    , padding = 'same'
+                    , name = 'generator_conv_' + str(i)
+                    , kernel_initializer = self.weight_init
                 )(x)
             else:
 
@@ -183,7 +180,6 @@ class WGAN():
                     x = BatchNormalization(momentum = self.generator_batch_norm_momentum)(x)
 
                 x = self.get_activation(self.generator_activation)(x)
-            
             else:
                 x = Activation('tanh')(x)
 

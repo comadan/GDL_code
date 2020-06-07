@@ -165,10 +165,7 @@ class GAN():
                     x = BatchNormalization(momentum = self.generator_batch_norm_momentum)(x)
 
                 x = self.get_activation(self.generator_activation)(x)
-                    
-                
             else:
-
                 x = Activation('tanh')(x)
 
 

@@ -1,4 +1,3 @@
-
 from keras.layers import Input, Conv2D, Flatten, Dense, Conv2DTranspose, Reshape, Lambda, Activation, BatchNormalization, LeakyReLU, Dropout, ZeroPadding2D, UpSampling2D
 from keras.layers.merge import _Merge
 
@@ -169,6 +168,7 @@ class WGANGP():
         x = generator_input
 
         x = Dense(np.prod(self.generator_initial_dense_layer_size), kernel_initializer = self.weight_init)(x)
+        
         if self.generator_batch_norm_momentum:
             x = BatchNormalization(momentum = self.generator_batch_norm_momentum)(x)
         
@@ -184,11 +184,11 @@ class WGANGP():
             if self.generator_upsample[i] == 2:
                 x = UpSampling2D()(x)
                 x = Conv2D(
-                filters = self.generator_conv_filters[i]
-                , kernel_size = self.generator_conv_kernel_size[i]
-                , padding = 'same'
-                , name = 'generator_conv_' + str(i)
-                , kernel_initializer = self.weight_init
+                    filters = self.generator_conv_filters[i]
+                    , kernel_size = self.generator_conv_kernel_size[i]
+                    , padding = 'same'
+                    , name = 'generator_conv_' + str(i)
+                    , kernel_initializer = self.weight_init
                 )(x)
             else:
 
@@ -207,7 +207,6 @@ class WGANGP():
                     x = BatchNormalization(momentum = self.generator_batch_norm_momentum)(x)
 
                 x = self.get_activation(self.generator_activation)(x)
-                
             else:
                 x = Activation('tanh')(x)
 
@@ -269,7 +268,7 @@ class WGANGP():
                             outputs=[valid, fake, validity_interpolated])
 
         self.critic_model.compile(
-            loss=[self.wasserstein,self.wasserstein, partial_gp_loss]
+            loss=[self.wasserstein, self.wasserstein, partial_gp_loss]
             ,optimizer=self.get_opti(self.critic_learning_rate)
             ,loss_weights=[1, 1, self.grad_weight]
             )

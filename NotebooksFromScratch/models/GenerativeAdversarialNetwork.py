@@ -189,7 +189,7 @@ class GenerativeAdversarialNetwork():
         return v, g
     
     
-    def train(self, x_train, batch_size, epochs, run_folder, print_every_n_batches = 50):
+    def train(self, x_train, batch_size, epochs, run_folder, print_every_n_batches=50):
         paths = [os.path.join(run_folder, subdir) for subdir in ["weights", "model", "sampled_images"]]
         for p in paths:
             if not os.path.exists(p):

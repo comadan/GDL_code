@@ -82,7 +82,7 @@ class WassersteinGenerativeAdversarialNetwork():
         if self.generator_batch_norm_momentum is not None:
             layer = BatchNormalization(momentum=self.generator_batch_norm_momentum)(layer)
         
-        layer = Activation(self.get_activation(self.generator_activation))(layer)
+        layer = self.get_activation(self.generator_activation)(layer)
         layer = Reshape(target_shape=self.generator_initial_dim)(layer)
         if (self.generator_dropout_rate is not None) and (self.generator_dropout_rate > 0.):
             layer = Dropout(rate=self.generator_dropout_rate)(layer)
@@ -97,7 +97,7 @@ class WassersteinGenerativeAdversarialNetwork():
             if i < len(self.generator_convolutional_params) - 1:
                 if self.generator_batch_norm_momentum is not None:
                     layer = BatchNormalization(momentum=self.generator_batch_norm_momentum)(layer)
-                layer = Activation(self.get_activation(self.generator_activation))(layer)
+                layer = self.get_activation(self.generator_activation)(layer)
                 if (self.generator_dropout_rate is not None) and (self.generator_dropout_rate > 0.):
                     layer = Dropout(rate=self.generator_dropout_rate)(layer)
             else:
@@ -114,14 +114,14 @@ class WassersteinGenerativeAdversarialNetwork():
             
             if (self.critic_batch_norm_momentum is not None) and ((i < len(self.critic_convolutional_params) - 1) or ((self.critic_dense_dim is not None) and (self.critic_dense_dim > 0))):
                 layer = BatchNormalization(momentum=self.critic_batch_norm_momentum)(layer)
-            layer = Activation(self.get_activation(self.critic_activation))(layer)
+            layer = self.get_activation(self.critic_activation)(layer)
             if (self.critic_dropout_rate is not None) and (self.critic_dropout_rate > 0.):
                 layer = Dropout(rate=self.critic_dropout_rate)(layer)
         
         layer = Flatten()(layer)
         if (self.critic_dense_dim is not None) and (self.critic_dense_dim > 0):
             layer = Dense(units=self.critic_dense_dim, kernel_initializer=self.weight_initializer)(layer)
-            layer = Activation(self.get_activation(self.critic_activation))(layer)
+            layer = self.get_activation(self.critic_activation)(layer)
         
         layer = Dense(units=1, activation=None, kernel_initializer=self.weight_initializer)(layer)
         

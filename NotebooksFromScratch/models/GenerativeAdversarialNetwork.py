@@ -80,7 +80,7 @@ class GenerativeAdversarialNetwork():
         if self.generator_batch_norm_momentum is not None:
             layer = BatchNormalization(momentum=self.generator_batch_norm_momentum)(layer)
         
-        layer = Activation(self.get_activation(self.generator_activation))(layer)
+        layer = self.get_activation(self.generator_activation)(layer)
         layer = Reshape(target_shape=self.generator_initial_dim)(layer)
         if (self.generator_dropout_rate is not None) and (self.generator_dropout_rate > 0.):
             layer = Dropout(rate=self.generator_dropout_rate)(layer)
@@ -95,7 +95,7 @@ class GenerativeAdversarialNetwork():
             if i < len(self.generator_convolutional_params) - 1:
                 if self.generator_batch_norm_momentum is not None:
                     layer = BatchNormalization(momentum=self.generator_batch_norm_momentum)(layer)
-                layer = Activation(self.get_activation(self.generator_activation))(layer)
+                layer = self.get_activation(self.generator_activation)(layer)
                 if (self.generator_dropout_rate is not None) and (self.generator_dropout_rate > 0.):
                     layer = Dropout(rate=self.generator_dropout_rate)(layer)
             else:
@@ -112,14 +112,14 @@ class GenerativeAdversarialNetwork():
             
             if (self.discriminator_batch_norm_momentum is not None) and ((i < len(self.discriminator_convolutional_params) - 1) or ((self.discriminator_dense_dim is not None) and (self.discriminator_dense_dim > 0))):
                 layer = BatchNormalization(momentum=self.discriminator_batch_norm_momentum)(layer)
-            layer = Activation(self.get_activation(self.discriminator_activation))(layer)
+            layer = self.get_activation(self.discriminator_activation)(layer)
             if (self.discriminator_dropout_rate is not None) and (self.discriminator_dropout_rate > 0.):
                 layer = Dropout(rate=self.discriminator_dropout_rate)(layer)
         
         layer = Flatten()(layer)
         if (self.discriminator_dense_dim is not None) and (self.discriminator_dense_dim > 0):
             layer = Dense(units=self.discriminator_dense_dim, kernel_initializer=self.weight_initializer)(layer)
-            layer = Activation(self.get_activation(self.discriminator_activation))(layer)
+            layer = self.get_activation(self.discriminator_activation)(layer)
         
         layer = Dense(units=1, activation='sigmoid', kernel_initializer=self.weight_initializer)(layer)
         

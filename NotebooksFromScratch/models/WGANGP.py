@@ -91,7 +91,7 @@ class WGANGP():
         self._build_critic()
         self.critic_model.summary()
         self._build_adversarial()
-        self.critic_model_gp.summary()
+        self.critic_gp_model.summary()
         self.adversarial_model.summary()
     
     

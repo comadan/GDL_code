@@ -7,6 +7,7 @@ from functools import partial
 
 from keras.models import Model
 from keras.layers import Input, Conv2D, Conv2DTranspose, UpSampling2D, BatchNormalization, Dropout, Dense, Flatten, Reshape, Lambda, Activation, LeakyReLU
+from keras.layers.merge import _Merge
 from keras.losses import BinaryCrossentropy
 from keras.optimizers import Adam, RMSprop
 from keras.initializers import RandomNormal
@@ -14,6 +15,18 @@ from keras.utils import plot_model
 
 import keras.backend as backend
 
+
+class RandomWeightedAverage(_Merge):
+    """
+    keras needs each layer to be a layer type to build a model out of it.
+    """
+    def __init__(self, batch_size):
+        super().__init__()
+        self.batch_size = batch_size
+    """Provides a (random) weighted average between real and generated image samples"""
+    def _merge_function(self, inputs):
+        alpha = backend.random_uniform((self.batch_size, 1, 1, 1))
+        return (alpha * inputs[0]) + ((1 - alpha) * inputs[1])
 
 class WGANGP():
     """
@@ -28,6 +41,7 @@ class WGANGP():
                  critic_activation,
                  generator_convolutional_params,
                  critic_convolutional_params,
+                 batch_size,
                  generator_learning_rate=.0001,
                  critic_learning_rate=.0001,
                  generator_batch_norm_momentum=None,
@@ -64,6 +78,8 @@ class WGANGP():
 
         self.weight_initializer = RandomNormal(mean=0., stddev=.02)
         
+        self.batch_size = batch_size
+        
         self.current_epoch = 0
         self.critic_losses = []
         self.generator_losses = []
@@ -72,6 +88,8 @@ class WGANGP():
 
         self._build_generator()
         self._build_critic()
+        print(self.generator_model.summary())
+        print(self.critic_model.summary())
         self._build_adversarial()
     
     
@@ -99,8 +117,11 @@ class WGANGP():
         for i, param in enumerate(self.generator_convolutional_params):
             if ('upsample' in param) and (param['upsample'] is not None) and param['upsample'] > 1:
                 layer = UpSampling2D(size=(param['upsample'], param['upsample']))(layer)
-
-            layer = Conv2D(filters=param['filters'], kernel_size=param['kernel_size'], strides=param['strides'], padding='same', kernel_initializer=self.weight_initializer, name=f'generator_conv2d_{i}')(layer)
+            
+            if ('transpose' in param) and param['transpose']:
+                layer = Conv2DTranspose(filters=param['filters'], kernel_size=param['kernel_size'], strides=param['strides'], padding='same', kernel_initializer=self.weight_initializer, name=f'generator_conv2dtranspose_{i}')(layer)
+            else:
+                layer = Conv2D(filters=param['filters'], kernel_size=param['kernel_size'], strides=param['strides'], padding='same', kernel_initializer=self.weight_initializer, name=f'generator_conv2d_{i}')(layer)
 
             if i < len(self.generator_convolutional_params) - 1:
                 if self.generator_batch_norm_momentum is not None:
@@ -158,8 +179,8 @@ class WGANGP():
         real_scores = self.critic_model(real_images)
         generated_scores = self.critic_model(generated_images)
         
-        alpha = backend.random_uniform((self.batch_size, 1, 1, 1))
-        interpolated_images = (alpha * real_images) + (1 - alpha) (generated_images)
+        
+        interpolated_images = RandomWeightedAverage(self.batch_size)([real_images, generated_images])
         
         interpolated_scores = self.critic_model(interpolated_images)
         
@@ -190,6 +211,10 @@ class WGANGP():
     
     
     def gradient_penalty_cost(self, y_true, y_pred, interpolated_images):
+        '''
+        compute lambda * (1 - ||grad||)^2 still for each single sample
+        '''
+        
         gradients = backend.gradients(y_pred, interpolated_images)
         
         gradient_l2_norm = backend.sqrt(backend.sum(backend.square(gradients), axis=np.arange(1, len(gradients.shape))))

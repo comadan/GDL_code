@@ -232,7 +232,7 @@ class WGANGP():
         return stats
     
     
-    def train_critic(self, x_train, batch_size, clip_threshold):
+    def train_critic(self, x_train, batch_size):
         valid = np.ones((batch_size, 1))
         generated = -np.ones((batch_size, 1))
         dummy = np.zeros((batch_size, 1))
@@ -249,7 +249,7 @@ class WGANGP():
         return loss
         
     
-    def train(self, x_train, batch_size, epochs, run_folder, print_every_n_batches=50, critic_training_steps=5, clip_threshold = 0.01):
+    def train(self, x_train, batch_size, epochs, run_folder, print_every_n_batches=50, critic_training_steps=5):
         paths = [os.path.join(run_folder, subdir) for subdir in ["weights", "model", "sampled_images"]]
         for p in paths:
             if not os.path.exists(p):
@@ -257,7 +257,7 @@ class WGANGP():
         
         for epoch in range(self.current_epoch, self.current_epoch + epochs):
             for _ in range(critic_training_steps):
-                critic_loss = self.train_critic(x_train, batch_size, clip_threshold)
+                critic_loss = self.train_critic(x_train, batch_size)
             
             generator_stats = self.train_generator(batch_size)
             print(f"epoch: {epoch}  disc. loss: {critic_loss[0]:.3f} (v: {critic_loss[1]:.3f} g: {critic_loss[2]:.3f} gp: {critic_loss[3]:.3f}) gen. loss:{generator_stats[0]:.3f} acc.: {generator_stats[1]:.3f}")

@@ -197,7 +197,6 @@ class WassersteinGenerativeAdversarialNetwork():
     
     def train_generator(self, batch_size):
         valid = np.ones((batch_size, 1))
-        generated = np.zeros((batch_size, 1))
         latent_noise = np.random.normal(0., 1., (batch_size, self.latent_dim))
         stats = self.adversarial_model.train_on_batch(latent_noise, valid)
         return stats

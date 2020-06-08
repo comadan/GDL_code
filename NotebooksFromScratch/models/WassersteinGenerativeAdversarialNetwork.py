@@ -185,8 +185,8 @@ class WassersteinGenerativeAdversarialNetwork():
     
     def train_critic_alternating(self, x_train, batch_size):
         valid = np.ones((batch_size, 1))
-        generated = np.zeros((batch_size, 1))
-        
+        generated =  - np.ones((batch_size, 1))
+
         idx = np.random.randint(0, x_train.shape[0], batch_size)
         valid_images = x_train[idx]
         
@@ -196,6 +196,11 @@ class WassersteinGenerativeAdversarialNetwork():
         
         v = self.critic_model.train_on_batch(valid_images, valid)
         g = self.critic_model.train_on_batch(generated_images, generated)
+
+        for layer in self.critic_model.layers:
+            weights = [np.clip(w, -clip_threshold, clip_threshold) for w in layer.get_weights()]
+            layer.set_weights(weights)
+        
         return v, g
     
     

@@ -262,7 +262,7 @@ class WGANGP():
         
         for epoch in range(self.current_epoch, self.current_epoch + epochs):
             for _ in range(critic_training_steps):
-                critic_loss = self.train_critic(x_train, batch_size, using_generator=False)
+                critic_loss = self.train_critic(x_train, batch_size, using_generator=using_generator)
             
             generator_stats = self.train_generator(batch_size)
             print(f"epoch: {epoch}  disc. loss: {critic_loss[0]:.3f} (v: {critic_loss[1]:.3f} g: {critic_loss[2]:.3f} gp: {critic_loss[3]:.3f}) gen. loss:{generator_stats[0]:.3f} acc.: {generator_stats[1]:.3f}")

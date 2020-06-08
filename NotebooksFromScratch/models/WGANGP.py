@@ -232,13 +232,18 @@ class WGANGP():
         return stats
     
     
-    def train_critic(self, x_train, batch_size):
+    def train_critic(self, x_train, batch_size, using_generator=False):
         valid = np.ones((batch_size, 1))
         generated = -np.ones((batch_size, 1))
         dummy = np.zeros((batch_size, 1))
-                
-        idx = np.random.randint(0, x_train.shape[0], batch_size)
-        valid_images = x_train[idx]
+        
+        if using_generator:
+            valid_images = next(x_train)[0]
+            if valid_images.shape[0] != batch_size:
+                valid_images = next(x_train)[0]
+        else:
+            idx = np.random.randint(0, x_train.shape[0], batch_size)
+            valid_images = x_train[idx]
         
         latent_noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
         generated_images = self.generator_model.predict(latent_noise)
@@ -249,7 +254,7 @@ class WGANGP():
         return loss
         
     
-    def train(self, x_train, batch_size, epochs, run_folder, print_every_n_batches=50, critic_training_steps=5):
+    def train(self, x_train, batch_size, epochs, run_folder, print_every_n_batches=50, critic_training_steps=5, using_generator=False):
         paths = [os.path.join(run_folder, subdir) for subdir in ["weights", "model", "sampled_images"]]
         for p in paths:
             if not os.path.exists(p):
@@ -257,7 +262,7 @@ class WGANGP():
         
         for epoch in range(self.current_epoch, self.current_epoch + epochs):
             for _ in range(critic_training_steps):
-                critic_loss = self.train_critic(x_train, batch_size)
+                critic_loss = self.train_critic(x_train, batch_size, using_generator=False)
             
             generator_stats = self.train_generator(batch_size)
             print(f"epoch: {epoch}  disc. loss: {critic_loss[0]:.3f} (v: {critic_loss[1]:.3f} g: {critic_loss[2]:.3f} gp: {critic_loss[3]:.3f}) gen. loss:{generator_stats[0]:.3f} acc.: {generator_stats[1]:.3f}")

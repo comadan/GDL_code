@@ -15,7 +15,10 @@ from keras.utils import plot_model
 import keras.backend as backend
 
 
-class WassersteinGenerativeAdversarialNetwork():
+class WGANGP():
+    """
+    Wasserstein Generative Adversarial Network with Gradient Penalty
+    """
     def __init__(self,
                  image_dim,
                  latent_dim,
@@ -166,7 +169,7 @@ class WassersteinGenerativeAdversarialNetwork():
         # although the inerpolated scores aren't really used in the loss, we output them here, because we need 3 outputs for the loss function.
         self.critic_gp_model = Model(inputs=[real_images, generator_latent_dim], outputs=[real_scores, generated_scores, interpolated_scores])
         self.critic_gp_model.compile(loss=[self.wasserstein_cost, self.wasserstein_cost, partial_gradient_penalty], 
-            optimizer=Adam(lr=self.critic_learning_rate),
+            optimizer=Adam(lr=self.critic_learning_rate, beta_1=0.5),
             loss_weights=[1, 1, self.gradient_penalty_weight])
         
         ###################################################
@@ -178,7 +181,7 @@ class WassersteinGenerativeAdversarialNetwork():
         adversarial_output = self.critic_model(self.generator_model(adversarial_input))
         self.adversarial_model = Model(adversarial_input, adversarial_output, name="adversarial_model")
         
-        self.adversarial_model.compile(loss=self.wasserstein_cost, optimizer=Adam(lr=self.generator_learning_rate), metrics=['accuracy'])
+        self.adversarial_model.compile(loss=self.wasserstein_cost, optimizer=Adam(lr=self.generator_learning_rate, beta_1=0.5), metrics=['accuracy'])
         self.set_model_trainable(self.critic_model, is_trainable=True)    
     
     
@@ -189,7 +192,7 @@ class WassersteinGenerativeAdversarialNetwork():
     def gradient_penalty_cost(self, y_true, y_pred, interpolated_images):
         gradients = backend.gradients(y_pred, interpolated_images)
         
-        gradient_l2_norm = backend.sqrt(backend.sum(backend.square(gradients), axis=[1:len(gradients.shape)]))
+        gradient_l2_norm = backend.sqrt(backend.sum(backend.square(gradients), axis=np.arange(1, len(gradients.shape))))
         
         gradient_penalty = backend.square(1 - gradient_l2_norm)
         

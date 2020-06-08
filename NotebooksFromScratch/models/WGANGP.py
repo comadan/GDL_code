@@ -87,10 +87,12 @@ class WGANGP():
         self.gradient_penalty_weight = gradient_penalty_weight
 
         self._build_generator()
+        self.generator_model.summary()
         self._build_critic()
-        print(self.generator_model.summary())
-        print(self.critic_model.summary())
+        self.critic_model.summary()
         self._build_adversarial()
+        self.critic_model_gp.summary()
+        self.adversarial_model.summary()
     
     
     def get_activation(self, activation):
@@ -215,7 +217,7 @@ class WGANGP():
         compute lambda * (1 - ||grad||)^2 still for each single sample
         '''
         
-        gradients = backend.gradients(y_pred, interpolated_images)
+        gradients = backend.gradients(y_pred, interpolated_images)[0]
         
         gradient_l2_norm = backend.sqrt(backend.sum(backend.square(gradients), axis=np.arange(1, len(gradients.shape))))
         

@@ -20,14 +20,24 @@ class CycleGenerativeAdversarialNetwork():
                  lambda_identity,
                  translator_model_type,
                  translator_first_layer_filters,
-                 discriminator_n_filters,
+                 discriminator_first_layer_filters,
                  discriminator_loss=None):
         
+        self.input_dim = input_dim
+        self.learning_rate = learning_rate
+        
+        # cost multipliers/lambdas
         self.lambda_discriminator = lambda_discriminator
         self.lambda_reconstruction = lambda_reconstruction
         self.lambda_identity = lambda_identity
-        self.translator_first_layer_filters = translator_first_layer_filters
         
+        self.translator_model_type = translator_model_type
+        
+        # number of filters in first layer
+        self.translator_first_layer_filters = translator_first_layer_filters
+        self.discriminator_first_layer_filters = discriminator_first_layer_filters
+        
+        # check valid losses
         if (discriminator_loss not in ['binary_cross_entropy', 'mse', 'rmse']):
             raise ValueError(f'{discriminator_loss} is not a valid discriminator loss')
         self.discriminator_loss = discriminator_loss

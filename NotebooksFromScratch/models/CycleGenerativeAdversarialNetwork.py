@@ -1,4 +1,5 @@
 import os, pickle
+import datetime
 from collections import deque
 
 from keras.models import Model
@@ -7,6 +8,8 @@ from keras.initializers import RandomNormal
 from keras.optimizers import Adam
 from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization
 from keras.utils import plot_model
+
+import random
 
 class CycleGenerativeAdversarialNetwork():
     """
@@ -29,7 +32,7 @@ class CycleGenerativeAdversarialNetwork():
                  translator_first_layer_filters,
                  discriminator_first_layer_filters,
                  discriminator_loss=None,
-                 buffer_max_length=50):
+                 ):
         
         self.input_dim = input_dim
         self.learning_rate = learning_rate
@@ -53,11 +56,7 @@ class CycleGenerativeAdversarialNetwork():
         self.discriminator_losses = []
         self.translator_losses = []
         self.epoch = 0
-        
-        self.buffer_max_length = buffer_max_length
-        self.buffer_A = deque(maxlen = self.buffer_max_length)
-        self.buffer_B = deque(maxlen = self.buffer_max_length)
-        
+                
         # Calculate output shape of discriminator (PatchGAN)
         patch_dim = int(self.input_dim[0] / 2**3)
         self.discriminator_patch_dim = (patch_dim, patch_dim, 1)
@@ -126,9 +125,9 @@ class CycleGenerativeAdversarialNetwork():
         input_layer = Input(shape=self.input_dim)
         
         layer = disc_conv(input_layer, self.discriminator_first_layer_filters, strides=2, instance_normalization=False) # first layer doesn't use instance normalization
-        layer = disc_conv(input_layer, self.discriminator_first_layer_filters * 2, strides=2)
-        layer = disc_conv(input_layer, self.discriminator_first_layer_filters * 4, strides=2)
-        layer = disc_conv(input_layer, self.discriminator_first_layer_filters * 8, strides=2)
+        layer = disc_conv(layer, self.discriminator_first_layer_filters * 2, strides=2)
+        layer = disc_conv(layer, self.discriminator_first_layer_filters * 4, strides=2)
+        layer = disc_conv(layer, self.discriminator_first_layer_filters * 8, strides=1) # kind of interesting that book didn't downsample in final convolution, use strides=2, here. There's a discrepancy in the text, that it says we're predicting an 8x8 patch, but in the code we're actually doing 16x16 patch.
         
         
         if (self.discriminator_loss == 'binary_crossentropy'):
@@ -193,24 +192,73 @@ class CycleGenerativeAdversarialNetwork():
                                                      self.lambda_identity, self.lambda_identity])
         
 
-    def train_discriminators(self):
+    def train_discriminators(self, images_A, images_B, y_real, y_translated, alternating_discriminator=True):
+        
+        translated_A = self.translator_BA.predict(images_B)
+        translated_B = self.translator_AB.predict(images_A)
+                
+        if alternating_discriminator:
+            d_A_loss_real = self.discriminator_A.train_on_batch(images_A, y_real)
+            d_A_loss_translated = self.discriminator_A.train_on_batch(translated_A, y_translated)
+            d_B_loss_real = self.discriminator_B.train_on_batch(images_B, y_real)
+            d_B_loss_translated = self.discriminator_B.train_on_batch(translated_B, y_translated)
+            d_A_loss = .5 * np.add(d_A_loss_real, d_A_loss_translated)
+            d_B_loss = .5 * np.add(d_B_loss_real, d_B_loss_translated)
+        else:
+            d_A_loss_real = self.discriminator_A.test_on_batch(images_A, y_real)
+            d_A_loss_translated = self.discriminator_A.test_on_batch(translated_A, y_translated)
+            d_B_loss_real = self.discriminator_A.test_on_batch(images_B, y_real)
+            d_B_loss_translated = self.discriminator_A.test_on_batch(translated_B, y_translated)
+            d_A_loss = self.discriminator_A.train_on_batch(np.concatenate((images_A, translated_A), axis=0), np.concatenate((y_real, y_translated), axis=0))
+            d_B_loss = self.discriminator_B.train_on_batch(np.concatenate((images_B, translated_B), axis=0), np.concatenate((y_real, y_translated), axis=0))
+        
+        d_loss_total = 0.5 * np.add(d_A_loss, d_B_loss)
+        
         return (
             d_loss_total[0]
-            , dA_loss[0], dA_loss_real[0], dA_loss_fake[0]
-            , dB_loss[0], dB_loss_real[0], dB_loss_fake[0]
+            , d_A_loss[0], d_A_loss_real[0], d_A_loss_translated[0]
+            , d_B_loss[0], d_B_loss_real[0], d_B_loss_translated[0]
             , d_loss_total[1]
-            , dA_loss[1], dA_loss_real[1], dA_loss_fake[1]
-            , dB_loss[1], dB_loss_real[1], dB_loss_fake[1]
+            , d_A_loss[1], d_A_loss_real[1], d_A_loss_translated[1]
+            , d_B_loss[1], d_B_loss_real[1], d_B_loss_translated[1]
         )
 
-    def train_generators(self):
-        
-        return
+    def train_generators(self, images_A, images_B, valid):
+
+        # Train the generators
+        return self.adversarial_model.train_on_batch([images_A, images_B],
+                                                     [valid, valid,
+                                                     images_A, images_B,
+                                                     images_A, images_B])
     
     
-    def train(self):
+    def train(self, data_loader, run_folder, epochs, test_A_file, test_B_file, batch_size=1, sample_interval=100, alternating_discriminator=True):
+        start_time = datetime.datetime.now()
         
-        return
+        # ground truths
+        y_real = np.ones((batch_size, ) + self.discriminator_patch_dim)
+        y_translated = np.ones((batch_size, ) + self.discriminator_patch_dim)
+        
+        for epoch in range(self.epoch, epochs):
+            for b, (images_A, images_B) in enumerate(data.loader(batch_size=batch_size)):
+                d_loss = self.train_discriminators(images_A, images_B, y_real, y_translated, alternating_discriminator=alternating_discriminator)
+                g_loss = self.train_generators(images_A, images_B, y_real)
+                
+                elapsed_time = datetime.datetime.now() - start_time
+                                
+                print (f"[Epoch {self.epoch}/{epochs}] [Batch {b}/{data_loader.n_batches}] [D loss: {d_loss[0]:.3f}, acc: {100*d_loss[7]:3d}] [G loss: {g_loss[0]:05f}, adv: {np.sum(g_loss[1:3]):05f}, recon: {np.sum(g_loss[3:5]):05f}, id: {np.sum(g_loss[5:7]):05f}] time: {elapsed_time}")
+                self.discriminator_losses.append(d_loss)
+                self.generator_losses.append(g_loss)
+                
+                # If at save interval => save generated image samples
+                if b % sample_interval == 0:
+                    self.sample_images(data_loader, b, run_folder, test_A_file, test_B_file)
+                    self.adversarial_model.save_weights(os.path.join(run_folder, 'weights/weights-%d.h5' % (self.epoch)))
+                    self.adversarial_model.save_weights(os.path.join(run_folder, 'weights/weights.h5'))
+                    self.save_model(run_folder)
+
+                
+            self.epoch += 1
     
     def sample_images(self, data_loader, batch_i, run_folder, test_A_file, test_B_file):
         
@@ -274,8 +322,7 @@ class CycleGenerativeAdversarialNetwork():
                 self.translator_model_type,
                 self.translator_first_layer_filters,
                 self.discriminator_first_layer_filters,
-                self.discriminator_loss,
-                self.buffer_max_length,], f)
+                self.discriminator_loss,], f)
 
         self.plot_model(folder)
         self.save_model(folder)

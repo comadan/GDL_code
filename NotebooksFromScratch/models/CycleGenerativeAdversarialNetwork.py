@@ -278,16 +278,17 @@ class CycleGenerativeAdversarialNetwork():
                 self.buffer_max_length,], f)
 
         self.plot_model(folder)
+        self.save_model(folder)
 
 
     def save_model(self, run_folder):
-        self.adversarial_model.save(os.path.join(run_folder, 'adversarial_model.h5')  )
-        self.discriminator_A.save(os.path.join(run_folder, 'discriminator_A.h5') )
-        self.discriminator_B.save(os.path.join(run_folder, 'discriminator_B.h5') )
-        self.translator_BA.save(os.path.join(run_folder, 'translator_BA.h5')  )
-        self.translator_AB.save(os.path.join(run_folder, 'translator_AB.h5') )
+        self.adversarial_model.save(os.path.join(run_folder, 'weights/adversarial_model.h5')  )
+        self.discriminator_A.save(os.path.join(run_folder, 'weights/discriminator_A.h5') )
+        self.discriminator_B.save(os.path.join(run_folder, 'weights/discriminator_B.h5') )
+        self.translator_BA.save(os.path.join(run_folder, 'weights/translator_BA.h5')  )
+        self.translator_AB.save(os.path.join(run_folder, 'weights/translator_AB.h5') )
 
-        pickle.dump(self, open( os.path.join(run_folder, "model_obj.pkl"), "wb" ))
+        pickle.dump(self, open( os.path.join(run_folder, "weights/model_obj.pkl"), "wb" ))
     
     
     def load_weights(self, filepath):

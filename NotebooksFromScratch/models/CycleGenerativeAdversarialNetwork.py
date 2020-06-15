@@ -1,3 +1,4 @@
+import os, pickle
 from collections import deque
 
 from keras.models import Model
@@ -5,6 +6,7 @@ from keras.layers import Input, Conv2D, Activation, UpSampling2D, Concatenate, L
 from keras.initializers import RandomNormal
 from keras.optimizers import Adam
 from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization
+from keras.utils import plot_model
 
 class CycleGenerativeAdversarialNetwork():
     """
@@ -254,42 +256,40 @@ class CycleGenerativeAdversarialNetwork():
 
 
     def plot_model(self, run_folder):
-        plot_model(self.combined, to_file=os.path.join(run_folder ,'viz/combined.png'), show_shapes = True, show_layer_names = True)
-        plot_model(self.discriminator_A, to_file=os.path.join(run_folder ,'viz/d_A.png'), show_shapes = True, show_layer_names = True)
-        plot_model(self.discriminator_B, to_file=os.path.join(run_folder ,'viz/d_B.png'), show_shapes = True, show_layer_names = True)
+        plot_model(self.adversarial_model, to_file=os.path.join(run_folder ,'viz/adversarial_model.png'), show_shapes = True, show_layer_names = True)
+        plot_model(self.discriminator_A, to_file=os.path.join(run_folder ,'viz/discriminator_A.png'), show_shapes = True, show_layer_names = True)
+        plot_model(self.discriminator_B, to_file=os.path.join(run_folder ,'viz/discriminator_B.png'), show_shapes = True, show_layer_names = True)
         plot_model(self.translator_BA, to_file=os.path.join(run_folder ,'viz/translator_BA.png'), show_shapes = True, show_layer_names = True)
         plot_model(self.translator_AB, to_file=os.path.join(run_folder ,'viz/translator_AB.png'), show_shapes = True, show_layer_names = True)
 
 
     def save(self, folder):
-
         with open(os.path.join(folder, 'params.pkl'), 'wb') as f:
-            pkl.dump([
-                self.input_dim
-                ,  self.learning_rate
-                ,  self.buffer_max_length
-                ,  self.lambda_validation
-                ,  self.lambda_reconstr
-                ,  self.lambda_id
-                ,  self.generator_type
-                ,  self.gen_n_filters
-                ,  self.disc_n_filters
-                ], f)
+            pickle.dump([
+                self.input_dim,
+                self.learning_rate,
+                self.lambda_discriminator,
+                self.lambda_reconstruction,
+                self.lambda_identity,
+                self.translator_model_type,
+                self.translator_first_layer_filters,
+                self.discriminator_first_layer_filters,
+                self.discriminator_loss,
+                self.buffer_max_length,], f)
 
         self.plot_model(folder)
 
 
     def save_model(self, run_folder):
-
-
-        self.combined.save(os.path.join(run_folder, 'model.h5')  )
-        self.discriminator_A.save(os.path.join(run_folder, 'd_A.h5') )
-        self.discriminator_B.save(os.path.join(run_folder, 'd_B.h5') )
+        self.adversarial_model.save(os.path.join(run_folder, 'adversarial_model.h5')  )
+        self.discriminator_A.save(os.path.join(run_folder, 'discriminator_A.h5') )
+        self.discriminator_B.save(os.path.join(run_folder, 'discriminator_B.h5') )
         self.translator_BA.save(os.path.join(run_folder, 'translator_BA.h5')  )
         self.translator_AB.save(os.path.join(run_folder, 'translator_AB.h5') )
 
-        pkl.dump(self, open( os.path.join(run_folder, "obj.pkl"), "wb" ))
-
+        pickle.dump(self, open( os.path.join(run_folder, "model_obj.pkl"), "wb" ))
+    
+    
     def load_weights(self, filepath):
         self.combined.load_weights(filepath)
 

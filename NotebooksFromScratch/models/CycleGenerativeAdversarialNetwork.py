@@ -2,6 +2,9 @@ import os, pickle
 import datetime
 from collections import deque
 
+import random
+import numpy as np
+
 from keras.models import Model
 from keras.layers import Input, Conv2D, Activation, UpSampling2D, Concatenate, LeakyReLU
 from keras.initializers import RandomNormal
@@ -9,7 +12,6 @@ from keras.optimizers import Adam
 from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization
 from keras.utils import plot_model
 
-import random
 
 class CycleGenerativeAdversarialNetwork():
     """
@@ -240,7 +242,7 @@ class CycleGenerativeAdversarialNetwork():
         y_translated = np.ones((batch_size, ) + self.discriminator_patch_dim)
         
         for epoch in range(self.epoch, epochs):
-            for b, (images_A, images_B) in enumerate(data.loader(batch_size=batch_size)):
+            for b, (images_A, images_B) in enumerate(data_loader.load_batch(batch_size=batch_size)):
                 d_loss = self.train_discriminators(images_A, images_B, y_real, y_translated, alternating_discriminator=alternating_discriminator)
                 g_loss = self.train_generators(images_A, images_B, y_real)
                 

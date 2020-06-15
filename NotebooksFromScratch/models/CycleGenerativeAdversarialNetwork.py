@@ -4,6 +4,7 @@ from collections import deque
 
 import random
 import numpy as np
+import matplotlib.pyplot as plt
 
 from keras.models import Model
 from keras.layers import Input, Conv2D, Activation, UpSampling2D, Concatenate, LeakyReLU
@@ -225,9 +226,9 @@ class CycleGenerativeAdversarialNetwork():
             , d_B_loss[1], d_B_loss_real[1], d_B_loss_translated[1]
         )
 
-    def train_generators(self, images_A, images_B, valid):
+    def train_translators(self, images_A, images_B, valid):
 
-        # Train the generators
+        # Train the translators
         return self.adversarial_model.train_on_batch([images_A, images_B],
                                                      [valid, valid,
                                                      images_A, images_B,
@@ -244,13 +245,13 @@ class CycleGenerativeAdversarialNetwork():
         for epoch in range(self.epoch, epochs):
             for b, (images_A, images_B) in enumerate(data_loader.load_batch(batch_size=batch_size)):
                 d_loss = self.train_discriminators(images_A, images_B, y_real, y_translated, alternating_discriminator=alternating_discriminator)
-                g_loss = self.train_generators(images_A, images_B, y_real)
+                g_loss = self.train_translators(images_A, images_B, y_real)
                 
                 elapsed_time = datetime.datetime.now() - start_time
                                 
-                print (f"[Epoch {self.epoch}/{epochs}] [Batch {b}/{data_loader.n_batches}] [D loss: {d_loss[0]:.3f}, acc: {100*d_loss[7]:3d}] [G loss: {g_loss[0]:05f}, adv: {np.sum(g_loss[1:3]):05f}, recon: {np.sum(g_loss[3:5]):05f}, id: {np.sum(g_loss[5:7]):05f}] time: {elapsed_time}")
+                print (f"[Epoch {self.epoch}/{epochs}] [Batch {b}/{data_loader.n_batches}] [D loss: {d_loss[0]:.3f}, acc: {100*d_loss[7]:.3f}] [G loss: {g_loss[0]:.3f}, adv: {np.sum(g_loss[1:3]):.3f}, recon: {np.sum(g_loss[3:5]):.3f}, id: {np.sum(g_loss[5:7]):.3f}] time: {elapsed_time}")
                 self.discriminator_losses.append(d_loss)
-                self.generator_losses.append(g_loss)
+                self.translator_losses.append(g_loss)
                 
                 # If at save interval => save generated image samples
                 if b % sample_interval == 0:

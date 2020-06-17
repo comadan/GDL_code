@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 
 from keras.models import Model
 from keras.layers import Input, Conv2D, Activation, UpSampling2D, Concatenate, LeakyReLU
+from keras.layers.merge import add
 from keras.initializers import RandomNormal
 from keras.optimizers import Adam
 from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization
@@ -114,7 +115,59 @@ class CycleGenerativeAdversarialNetwork():
 
 
     def build_translator_resnet(self):
-        return
+        def conv7s1(layer_input, filters, is_final_layer=False):
+            layer = Conv2D(filters, kernel_size=(7, 7), strides=1, padding='same')(layer_input)
+            if is_final_layer:
+                layer = Activation('tanh')(layer)
+            else:
+                layer = InstanceNormalization(axis=-1, center=False, scale=False)(layer)
+                layer = Activation('relu')(layer)
+            return layer
+        
+        def downsample(layer_input, filters):
+            layer = Conv2D(filters, kernel_size=(3, 3), strides=2, padding='same')(layer_input)
+            layer = InstanceNormalization(axis=-1, center=False, scale=False)(layer)
+            layer = Activation('relu')(layer)
+            return layer
+        
+        def upsample(layer_input, filters):
+            """
+            Book example is using Conv2DTranspose, but I use Upsampling + Conv2D here.
+            """
+            layer = UpSampling2D(size=(2, 2))(layer_input)
+            layer = Conv2D(filters, kernel_size=(3, 3), strides=1, padding='same')(layer_input)
+            layer = InstanceNormalization(axis=-1, center=False, scale=False)(layer)
+            layer = Activation('relu')(layer)
+        
+        def residual(layer_input, filters):
+            layer = Conv2D(filters, kernel_size=(3, 3), strides=1, padding='same')(layer_input)
+            layer = InstanceNormalization(axis=-1, center=False, scale=False)(layer)
+            layer = Activation('relu')(layer)
+            
+            layer = Conv2D(filters, kernel_size=(3, 3), strides=1, padding='same')(layer)
+            layer = InstanceNormalization(axis=-1, center=False, scale=False)(layer)
+            
+            return add([layer_input, layer])
+            
+        input_layer = Input(self.input_dim)
+        
+        layer = conv7s1(input_layer, self.translator_first_layer_filters, is_final_layer=False)
+        layer = downsample(layer, self.translator_first_layer_filters * 2)
+        layer = downsample(layer, self.translator_first_layer_filters * 4)
+        layer = residual(layer, self.translator_first_layer_filters * 4)
+        layer = residual(layer, self.translator_first_layer_filters * 4)
+        layer = residual(layer, self.translator_first_layer_filters * 4)
+        layer = residual(layer, self.translator_first_layer_filters * 4)
+        layer = residual(layer, self.translator_first_layer_filters * 4)
+        layer = residual(layer, self.translator_first_layer_filters * 4)
+        layer = residual(layer, self.translator_first_layer_filters * 4)
+        layer = residual(layer, self.translator_first_layer_filters * 4)
+        layer = residual(layer, self.translator_first_layer_filters * 4)
+        layer = upsample(layer, self.translator_first_layer_filters * 2)
+        layer = upsample(layer, self.translator_first_layer_filters)
+        output_layer = conv7s1(layer, 3, is_final_layer=True)
+        
+        return Model(input_layer, output_layer)
     
 
     def build_discriminator(self):

@@ -243,7 +243,7 @@ class CycleGenerativeAdversarialNetwork():
         
         # ground truths
         y_real = np.ones((batch_size, ) + self.discriminator_patch_dim)
-        y_translated = np.ones((batch_size, ) + self.discriminator_patch_dim)
+        y_translated = np.zeros((batch_size, ) + self.discriminator_patch_dim)
         
         for epoch in range(self.epoch, epochs):
             for b, (images_A, images_B) in enumerate(data_loader.load_batch(batch_size=batch_size)):

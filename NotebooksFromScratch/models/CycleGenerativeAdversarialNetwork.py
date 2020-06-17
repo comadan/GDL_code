@@ -108,7 +108,7 @@ class CycleGenerativeAdversarialNetwork():
         
         u_0 = UpSampling2D(size=(2, 2))(u_1)
         
-        output = Conv2D(self.input_dim[-1], kernel_size=4, strides=1, padding="same")(u_0)
+        output = Conv2D(self.input_dim[-1], kernel_size=4, strides=1, padding="same", activation='tanh')(u_0)
         
         return Model(input_layer, output)
 
@@ -193,6 +193,9 @@ class CycleGenerativeAdversarialNetwork():
                                        loss_weights=[self.lambda_discriminator, self.lambda_discriminator,
                                                      self.lambda_reconstruction, self.lambda_reconstruction,
                                                      self.lambda_identity, self.lambda_identity])
+
+        self.set_model_trainable(self.discriminator_A, True)
+        self.set_model_trainable(self.discriminator_B, True)
         
 
     def train_discriminators(self, images_A, images_B, y_real, y_translated, alternating_discriminator=True):
@@ -226,11 +229,11 @@ class CycleGenerativeAdversarialNetwork():
             , d_B_loss[1], d_B_loss_real[1], d_B_loss_translated[1]
         )
 
-    def train_translators(self, images_A, images_B, valid):
+    def train_translators(self, images_A, images_B, y_real):
 
         # Train the translators
         return self.adversarial_model.train_on_batch([images_A, images_B],
-                                                     [valid, valid,
+                                                     [y_real, y_real,
                                                      images_A, images_B,
                                                      images_A, images_B])
     
@@ -249,7 +252,7 @@ class CycleGenerativeAdversarialNetwork():
                 
                 elapsed_time = datetime.datetime.now() - start_time
                                 
-                print (f"[Epoch {self.epoch}/{epochs}] [Batch {b}/{data_loader.n_batches}] [D loss: {d_loss[0]:.3f}, acc: {100*d_loss[7]:.3f}] [G loss: {g_loss[0]:.3f}, adv: {np.sum(g_loss[1:3]):.3f}, recon: {np.sum(g_loss[3:5]):.3f}, id: {np.sum(g_loss[5:7]):.3f}] time: {elapsed_time}")
+                print (f"[Epoch {self.epoch}/{epochs}] [Batch {b}/{data_loader.n_batches}] [D loss: {d_loss[0]:.3f}, acc: {100*d_loss[7]:.0f}] [G loss: {g_loss[0]:.3f}, adv: {np.sum(g_loss[1:3]):.3f}, recon: {np.sum(g_loss[3:5]):.3f}, id: {np.sum(g_loss[5:7]):.3f}] time: {elapsed_time}")
                 self.discriminator_losses.append(d_loss)
                 self.translator_losses.append(g_loss)
                 

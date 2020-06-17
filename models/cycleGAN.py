@@ -176,7 +176,7 @@ class CycleGAN():
     def build_generator_resnet(self):
 
         def conv7s1(layer_input, filters, final):
-            y = ReflectionPadding2D(padding =(3,3))(layer_input)
+            y = ReflectionPadding2D(padding =(3,3))(layer_input) # adds a padding of 3 around image, so size is maintained with (7, 7) kernel
             y = Conv2D(filters, kernel_size=(7,7), strides=1, padding='valid', kernel_initializer = self.weight_init)(y)
             if final:
                 y = Activation('tanh')(y)
@@ -193,7 +193,7 @@ class CycleGAN():
 
         def residual(layer_input, filters):
             shortcut = layer_input
-            y = ReflectionPadding2D(padding =(1,1))(layer_input)
+            y = ReflectionPadding2D(padding =(1,1))(layer_input) # adds a padding of 1 around image, so size is maintained with (3, 3) kernel
             y = Conv2D(filters, kernel_size=(3, 3), strides=1, padding='valid', kernel_initializer = self.weight_init)(y)
             y = InstanceNormalization(axis = -1, center = False, scale = False)(y)
             y = Activation('relu')(y)

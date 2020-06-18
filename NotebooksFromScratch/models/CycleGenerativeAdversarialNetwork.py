@@ -135,7 +135,7 @@ class CycleGenerativeAdversarialNetwork():
             Book example is using Conv2DTranspose, but I use Upsampling + Conv2D here.
             """
             layer = UpSampling2D(size=(2, 2))(layer_input)
-            layer = Conv2D(filters, kernel_size=(3, 3), strides=1, padding='same')(layer_input)
+            layer = Conv2D(filters, kernel_size=(3, 3), strides=1, padding='same')(layer)
             layer = InstanceNormalization(axis=-1, center=False, scale=False)(layer)
             layer = Activation('relu')(layer)
             return layer

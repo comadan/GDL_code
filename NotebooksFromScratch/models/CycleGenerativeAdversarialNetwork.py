@@ -138,6 +138,7 @@ class CycleGenerativeAdversarialNetwork():
             layer = Conv2D(filters, kernel_size=(3, 3), strides=1, padding='same')(layer_input)
             layer = InstanceNormalization(axis=-1, center=False, scale=False)(layer)
             layer = Activation('relu')(layer)
+            return layer
         
         def residual(layer_input, filters):
             layer = Conv2D(filters, kernel_size=(3, 3), strides=1, padding='same')(layer_input)

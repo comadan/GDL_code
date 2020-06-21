@@ -399,5 +399,5 @@ class CycleGenerativeAdversarialNetwork():
     
     
     def load_weights(self, filepath):
-        self.combined.load_weights(filepath)
+        self.adversarial_model.load_weights(filepath)
 
